@@ -1,0 +1,42 @@
+# Build iOS sur les Mac de Codemagic et envoi vers TestFlight / App Store Connect.
+# Prérequis (dans l'interface Codemagic) :
+#   1. Teams > Integrations > Developer Portal : ajouter une clé API App Store Connect
+#      et lui donner le nom indiqué dans `integrations.app_store_connect` ci-dessous.
+#   2. Teams > Code signing identities : générer (ou importer) un certificat
+#      "Apple Distribution" et récupérer le profil App Store de com.sspay.sspay.
+#   3. Remplacer APP_STORE_APPLE_ID par l'Apple ID numérique de l'app
+#      (App Store Connect > l'app > Informations sur l'app > Apple ID).
+workflows:
+  ios-appstore:
+    name: iOS - App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: cle_api_app_store
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.sspay.sspay
+      vars:
+        APP_STORE_APPLE_ID: 0000000000
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: Signature Xcode
+        script: xcode-project use-profiles
+      - name: Dépendances Flutter
+        script: flutter pub get
+      - name: Build IPA
+        script: |
+          LATEST=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
+          flutter build ipa --release \
+            --build-number=$((LATEST + 1)) \
+            --export-options-plist=/Users/builder/export_options.plist
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
