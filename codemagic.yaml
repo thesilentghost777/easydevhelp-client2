@@ -18,7 +18,7 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.sspay.sspay
       vars:
-        APP_STORE_APPLE_ID: 0000000000
+        APP_STORE_APPLE_ID: 6827962624
       flutter: stable
       xcode: latest
       cocoapods: default
